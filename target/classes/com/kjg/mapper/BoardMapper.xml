@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kjg.mapper.BoardMapper">
+
+<sql id="criteria">
+	<trim prefixOverrides="OR" suffix=") AND " prefix="(">
+		<foreach collection="typeArr" item="type">
+			<trim prefix="OR">
+				<choose>
+					<when test="type == 'T'.toString()">title like '%'||#{keyword}||'%' </when>
+					<when test="type == 'C'.toString()">content like '%'||#{keyword}||'%' </when>
+					<when test="type == 'W'.toString()">writer like '%'||#{keyword}||'%' </when>
+				</choose>
+			</trim>
+		</foreach>
+	</trim>
+</sql>
+
+<select id="getListWithPaging" resultType="com.kjg.domain.BoardVO">
+<![CDATA[
+  select 
+    bno, title, content, writer, regdate, updatedate
+  from 
+      (
+      select /*+INDEX_DESC(kjg_board pk_board) */
+        rownum rn, bno, title, content, writer, regdate, updatedate 
+      from 
+        kjg_board
+      where 
+  ]]>
+<trim prefixOverrides="OR" suffix=") AND " prefix="(">
+	<foreach collection="typeArr" item="type">
+		<trim prefix="OR">
+			<choose>
+				<when test="type == 'T'.toString()">title like '%'||#{keyword}||'%' </when>
+				<when test="type == 'C'.toString()">content like '%'||#{keyword}||'%' </when>
+				<when test="type == 'W'.toString()">writer like '%'||#{keyword}||'%' </when>
+			</choose>
+		</trim>
+	</foreach>
+</trim>
+<![CDATA[    
+      rownum <= #{pageNum} * #{amount}
+      )
+  where rn > (#{pageNum} -1) * #{amount}   
+  ]]>
+</select>
+<select id="getTotalCount" resultType="int">
+select count(*) from kjg_board where 
+<include refid="criteria"/>
+bno > 0 
+</select>
+<!-- select 쿼리문 -->
+<select id="getList" resultType="com.kjg.domain.BoardVO">
+<![CDATA[
+	select * from kjg_board where bno > 0 
+]]>
+
+</select>
+<select id="read" resultType="com.kjg.domain.BoardVO">
+	select * from kjg_board where bno = #{bno}
+</select>
+
+
+<!-- insert 쿼리문 -->
+<insert id="insert">
+	insert into kjg_board (bno,title,content,writer)
+	values(seq_board.nextval, #{title}, #{content}, #{writer})
+</insert>
+
+<insert id="insertSelectKey">
+<selectKey keyProperty="bno" order="BEFORE" resultType="long">
+	select seq_board.nextval from dual
+</selectKey>
+
+insert into kjg_board (bno,title,content,writer)
+values(#{bno}, #{title}, #{content},#{writer})
+</insert>
+
+
+<!-- delete 쿼리문 -->
+
+<delete id="delete">
+	delete from kjg_board where bno = #{bno}
+</delete>
+
+<!-- update 쿼리문 -->
+<update id="update">
+	update kjg_board set title=#{title}, content = #{content} , writer = #{writer}, updateDate = sysdate where bno = #{bno}
+</update>
+</mapper>
